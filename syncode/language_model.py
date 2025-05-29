@@ -257,6 +257,34 @@ class HuggingFaceModel:
                 next_token = self._get_next_token(gen_mode, token_ids, logits_processor, next_token_scores)
             
             token_ids = torch.cat([token_ids, next_token[:, None]], dim=-1)
+            
+
+
+            if self.logits_processor:
+                for id in token_ids:
+                    if self.logits_processor.grammar_engine.parse_output_only:
+                        partial_str = self.tokenizer.decode(id[inputs.input_ids.size(dim=1):], skip_special_tokens=True)
+                    else:
+                        partial_str = self.tokenizer.decode(id, skip_special_tokens=True)
+
+                    print(f"{partial_str=}")
+                    a,b = self.logits_processor.grammar_engine._parse_partial_output(0, partial_str, b"")
+                    print(a)
+                    # print(self.logits_processor.grammar_engine.dfa_mask_store._fsms.states())
+                    for terminal_name, byte_fsm in self.logits_processor.grammar_engine.dfa_mask_store._fsms._terminals_to_byte_fsm.items():
+                        # We need to get states from the ByteFSM's transitions dictionary
+                        print({k.to_bytes() if isinstance(k, int) else k: v for k,v in byte_fsm.alphabet.items()})
+                        for state_id, s in byte_fsm.transitions.items():
+                            print((terminal_name, state_id, s))
+
+            # TODO: Check if variable assignemnt => manipulate fsm
+            # MARK: IMPL HERE
+
+            # def foo():
+            #     a = 10
+            #     print(a)
+            # def bar():
+            #     print(a)
 
             # Check stopping criteria
             finish_generation = False
