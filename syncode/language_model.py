@@ -45,7 +45,7 @@ class HuggingFaceModel:
             best_of: int = 1, 
             before_prediction_hook=lambda: None, 
             device='cuda', 
-            grammar_decoder=None, 
+            grammar_decoder: SyncodeLogitsProcessor|None=None, 
             mode: str ='original',
             opp: bool = True,
             **kwargs) -> None:
