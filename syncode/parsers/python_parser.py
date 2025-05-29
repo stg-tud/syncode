@@ -1,5 +1,5 @@
 import copy, regex
-from typing import Iterator
+from typing import Iterator, Tuple
 import syncode.larkm as lark
 import syncode.common as common
 from syncode.larkm import Token
@@ -133,7 +133,7 @@ class PythonIncrementalParser(IncrementalParser):
             while indent < indent_level[-1]:
                 indent_level.pop()
 
-    def _lex_code(self, code: str) -> Iterable[Token]:
+    def _lex_code(self, code: str) -> Tuple[Iterable[Token], bool]:
         # Collect Lexer tokens
         lexer_tokens: Iterable[Token] = []
         interactive = self.base_parser.parse_interactive(code)

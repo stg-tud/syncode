@@ -226,7 +226,7 @@ class GrammarConstrainer:
             skip = True
         return res, skip
 
-    def _get_partial_outputs(self, input_ids: torch.LongTensor) -> list[(str, bytes)]:
+    def _get_partial_outputs(self, input_ids: torch.LongTensor) -> list[tuple[str, bytes]]:
         """
         Get the partial codes for the input_ids and return the remainder bytes if the partial code is not a valid UTF-8 string.
         """     
