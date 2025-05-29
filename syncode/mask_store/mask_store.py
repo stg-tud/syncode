@@ -64,13 +64,13 @@ class MaskStore:
             )
         terminal_names = [terminal.name for terminal in terminals]
 
-        followings_terminas_map = None
+        following_terminals_map = None
         if parse_table is not None:
-            followings_terminas_map = self._compute_following_terminals_map(terminal_names, parse_table, ignore_terminals)
+            following_terminals_map = self._compute_following_terminals_map(terminal_names, parse_table, ignore_terminals)
 
         # Create consume prefix cache
         self._consume_prefix_cache = {}
-        self._store_token_masks(terminal_names, len(self._vocab), followings_terminas_map)
+        self._store_token_masks(terminal_names, len(self._vocab), following_terminals_map)
 
         self.indentation = indent       
 
@@ -176,7 +176,7 @@ class MaskStore:
         return following_terminals_map
 
 
-    def _store_token_masks(self, terminals: Iterable[str], vocab_size: int, followings_terminas_map: dict=None):
+    def _store_token_masks(self, terminals: Iterable[str], vocab_size: int, following_terminals_map: dict|None=None):
         """
         Stores the token masks for each fsm state and next terminals
         """
@@ -185,8 +185,8 @@ class MaskStore:
 
         for fsm_state in all_fsm_states:
             # Get the next terminals for the current fsm state
-            if followings_terminas_map is not None and fsm_state.terminal in followings_terminas_map:
-                following_terminals = followings_terminas_map[fsm_state.terminal]
+            if following_terminals_map is not None and fsm_state.terminal in following_terminals_map:
+                following_terminals = following_terminals_map[fsm_state.terminal]
             else:
                 following_terminals = terminals
 
