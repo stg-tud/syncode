@@ -207,6 +207,9 @@ class MaskStore:
 
 
     def _process_regular_tokens(self, terminals, fsm_state: JointFSMState, token_idx: int):
+
+        # MARK: Important
+        # Here the LookupTable is generated
         token_bytes = self.byte_tokenizer.decode([token_idx])
 
         # For COMPLETE case:
