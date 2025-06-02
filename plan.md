@@ -1,0 +1,5 @@
+- Change current grammar so that it does not allow to use any variables at the start
+- Implement custom parser for our use case
+- Generate a new mask for the variable and add it to the mask store
+- Add new DFA for each variable
+- No need to remove variables from mask store, just disallow the parser from parsing the variables that are out of scope
