@@ -6,6 +6,7 @@ from syncode.parsers.go_parser import GoIncrementalParser
 import syncode.common as common
 from syncode.larkm.lark import Lark
 from syncode.parsers.grammars.grammar import Grammar
+from syncode.parsers.testing_grammar_parser import TestingGrammarIncrementalParser
 
 def create_parser(
           grammar: Grammar, 
@@ -35,6 +36,8 @@ def create_parser(
             return PythonIncrementalParser(base_parser, indenter, **kwargs)
         elif grammar.name == 'go':
             return GoIncrementalParser(base_parser, **kwargs)
+        elif grammar.name == 'testing_grammar':
+             return TestingGrammarIncrementalParser(base_parser, **kwargs)
         return incremental_parser.IncrementalParser(base_parser, **kwargs)
 
 
