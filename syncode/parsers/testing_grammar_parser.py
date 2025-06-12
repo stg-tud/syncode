@@ -11,7 +11,8 @@ class TestingGrammarIncrementalParser(IncrementalParser):
 
     def __init__(self, base_parser: Lark, ignore_whitespace=False) -> None:
         super().__init__(base_parser, ignore_whitespace)
-        self._defined_vars:list[Token] = []
+        self._defined_vars: set[Token] = set()
+
 
     @property
     def defined_vars(self):
@@ -19,7 +20,6 @@ class TestingGrammarIncrementalParser(IncrementalParser):
         Returns the copy of the list of defined variables.
         """
         return [v for v in self._defined_vars]
-
 
 
     def _lex_code(self, code) -> Tuple[Iterable[Token], bool]:
@@ -32,23 +32,23 @@ class TestingGrammarIncrementalParser(IncrementalParser):
         lexer_state = interactive.lexer_thread.state
         lexing_incomplete = False
 
-
         try:
             while lexer_state.line_ctr.char_pos < len(lexer_state.text):
                 blexer = interactive.lexer_thread.lexer
                 token = blexer.next_token(lexer_state)
 
                 if token.type == "DEF_VAR_NAME":
-                    self._defined_vars.append((token.value))
+                    self._defined_vars.add(token.value)
 
                 self.lexer_pos = lexer_state.line_ctr.char_pos
                 lexer_tokens.append(token)
+
         except lark.exceptions.UnexpectedCharacters as e:
             lexing_incomplete = True
             # We update the lexer position to the current position since the lexer has stopped at this position
             self.lexer_pos = lexer_state.line_ctr.char_pos
+
         except EOFError as e:
             pass
 
-    
         return lexer_tokens, lexing_incomplete
