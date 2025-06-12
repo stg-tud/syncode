@@ -1,0 +1,15 @@
+start: compound_statement
+
+compound_statement: statement | (compound_statement ";" statement)
+
+statement: def_var | use_var
+
+def_var: DEF_VAR_NAME " = " VAR_VALUE
+
+DEF_VAR_NAME: VAR_NAME
+
+use_var: "use("i VAR_NAME ")"
+
+VAR_NAME: /[a-zA-Z_][a-zA-Z0-9_]*/
+
+VAR_VALUE: /[a-zA-Z0-9_]+/
