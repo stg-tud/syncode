@@ -21,7 +21,7 @@ class LookupTable:
             indent=False, 
             mode='grammar_mask'
         ):
-        self._fsm_state_and_next_terminal_to_tokens: defaultdict = defaultdict(list)
+        self._fsm_state_and_next_terminal_to_tokens: defaultdict[tuple[JointFSMState, Any], torch.Tensor | list[int]] = defaultdict(list)
         self._overapprox_lookup: Dict[JointFSMState, Any] = {}
         self._exact_lookup: dict = {}
         self._mode = mode

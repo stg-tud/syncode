@@ -53,7 +53,7 @@ class FSMSet:
         self._simplifications: Dict[str, str] = simplifications
         
         # Initialize cache for initial states
-        self._initial_state_cache = {}
+        self._initial_state_cache:dict[str, JointFSMState] = {}
         cnt_states = 0
 
         for terminal in terminals:
@@ -69,7 +69,7 @@ class FSMSet:
             cnt_states += len(byte_fsm.transitions)
         logger.info(f"{len(terminals)} FSMs with {cnt_states} states initialized in {time.time() - start_time:.2f} seconds")
 
-    def states(self):
+    def states(self) -> list[JointFSMState]:
         """Returns all possible DFA states for all terminals."""
         states = []
         for terminal_name, byte_fsm in self._terminals_to_byte_fsm.items():
@@ -78,7 +78,7 @@ class FSMSet:
                 states.append(JointFSMState(terminal_name, state_id))
         return states
 
-    def initial(self, terminal: str):
+    def initial(self, terminal: str) -> JointFSMState:
         """Get the initial state for a specific terminal (optimized with caching)."""
         # Check if we've already computed this initial state
         if terminal not in self._initial_state_cache:
