@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Tuple, Optional
+from typing import Iterable, Tuple, Optional
 
 class AcceptSequence(list):
     """
@@ -38,7 +38,7 @@ class ParseResult:
     """ 
     Stores the result of parsing. 
     """
-    def __init__(self, accept_sequences, remainder, remainder_state: RemainderState, next_ac_indents=None, function_end=False):
+    def __init__(self, accept_sequences: Iterable[AcceptSequence], remainder: bytes, remainder_state: RemainderState, next_ac_indents: Optional["IndentationConstraint"]=None, function_end:bool=False):
         self.remainder = remainder
         self.remainder_state = remainder_state
         self.accept_sequences = accept_sequences
@@ -46,7 +46,7 @@ class ParseResult:
         self.function_end = function_end
         
     @staticmethod
-    def from_accept_terminals(cur_accept_terminals, next_accept_terminals, remainder, remainder_state: RemainderState, next_ac_indents=None, final_terminal=None, ignore_terminals=None) -> 'ParseResult':
+    def from_accept_terminals(cur_accept_terminals, next_accept_terminals, remainder: bytes, remainder_state: RemainderState, next_ac_indents:Optional["IndentationConstraint"]=None, final_terminal=None, ignore_terminals=None) -> 'ParseResult':
         """
         Create a ParseResult from current and next accept terminals.
         """
@@ -74,7 +74,7 @@ class ParseResult:
             # Add the sequences that only contain ignore_terminals    
             accept_sequences = accept_sequences.union({AcceptSequence([t]) for t in ignore_terminals})
 
-        next_ac_indents: IndentationConstraint = next_ac_indents
+        next_ac_indents: Optional[IndentationConstraint] = next_ac_indents
 
         if remainder_state == RemainderState.INCOMPLETE: # If the terminal is not complete, then next_accept_terminals should be None
             if len(next_accept_terminals) == 0:
