@@ -13,7 +13,7 @@ class Grammar:
         self.ebnf = None
         grammar_filename = None
         assert name is not None, 'Grammar name not provided in grammar mode!'
-        if name in ['python', 'go', 'sql', 'tiny', 'calc', 'json', 'c', 'java', 'prover9', 'invariants', 'testing_grammar']:
+        if name in ['python', 'go', 'sql', 'tiny', 'calc', 'json', 'c', 'java', 'prover9', 'invariants', 'testing_grammar', 'python_var_tracking']:
             grammar_filename = f'{os.path.dirname(__file__)}/{name}.lark'
         elif name.endswith('.lark'): 
             if os.path.exists(name):
@@ -45,7 +45,7 @@ class Grammar:
 
         # NOTE: We are not changing the actual regex of the terminals while parsing. We are only using the simplified regex for computing the overapproximate tokens maintaining the soundness.
         """
-        if self.name == 'python':
+        if self.name in ('python', 'python_var_tracking'):
             # Simplifications for python
             python_simplifications = {
                             'COMMENT': '(?i:(?s:(#.*|\'\'\'.*?\'\'\'|""".*?""")))', 
