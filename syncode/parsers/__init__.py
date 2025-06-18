@@ -6,6 +6,7 @@ from syncode.parsers.go_parser import GoIncrementalParser
 import syncode.common as common
 from syncode.larkm.lark import Lark
 from syncode.parsers.grammars.grammar import Grammar
+from syncode.parsers.python_var_tracking_parser import PythonVarTrackingIncrementalParser
 from syncode.parsers.testing_grammar_parser import TestingGrammarIncrementalParser
 
 def create_parser(
@@ -23,7 +24,7 @@ def create_parser(
         cache_filename = parser_cache_dir + f'{grammar}_{parser}_{grammar.hash()}_parser.pkl'
         os.makedirs(os.path.dirname(parser_cache_dir), exist_ok=True)
 
-        if grammar.name == 'python' and not use_symbol_pos_map:
+        if grammar.name in ('python', 'python_var_tracking') and not use_symbol_pos_map:
             indenter = PythonIndenter()
 
         base_parser = create_base_parser(grammar, parser, indenter, cache_filename)
@@ -34,6 +35,8 @@ def create_parser(
         
         if grammar.name == 'python':
             return PythonIncrementalParser(base_parser, indenter, **kwargs)
+        elif grammar.name == 'python_var_tracking':
+            return PythonVarTrackingIncrementalParser(base_parser, indenter, **kwargs)
         elif grammar.name == 'go':
             return GoIncrementalParser(base_parser, **kwargs)
         elif grammar.name == 'testing_grammar':
