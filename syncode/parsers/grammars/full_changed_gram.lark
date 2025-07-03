@@ -59,13 +59,13 @@ import_name: "import" dotted_as_names
 // note below: the ("." | "...") is necessary because "..." is tokenized as ELLIPSIS
 import_from: "from" (dots? dotted_name | dots) "import" ("*" | "(" import_as_names ")" | import_as_names)
 !dots: "."+
-import_as_name: NAME ["as" NAME]
-dotted_as_name: dotted_name ["as" NAME]
+import_as_name: NAME_DEFINE | NAME_DEFAULT "as" NAME_DEFINE
+dotted_as_name: NAME_DEFINE ("." NAME_DEFAULT)* | dotted_name "as" NAME_DEFINE
 !import_as_names: import_as_name ("," import_as_name)* [","]
 dotted_as_names: dotted_as_name ("," dotted_as_name)*
-dotted_name: NAME ("." NAME)*
-global_stmt: "global" NAME ("," NAME)*
-nonlocal_stmt: "nonlocal" NAME ("," NAME)*
+dotted_name: NAME_DEFAULT ("." NAME_DEFAULT)*
+global_stmt: "global" NAME_DEFAULT ("," NAME_DEFAULT)*
+nonlocal_stmt: "nonlocal" NAME_DEFAULT ("," NAME_DEFAULT)*
 assert_stmt: "assert" test ["," test]
 
 compound_stmt: if_stmt | while_stmt | for_stmt | try_stmt | with_stmt | funcdef | classdef | decorated | async_stmt
@@ -163,13 +163,15 @@ number: DEC_NUMBER | HEX_NUMBER | OCT_NUMBER | FLOAT_NUMBER
 string: STRING | LONG_STRING 
 // Tokens
 
-NAME: /[a-zA-Z_]\w*/
+NAME_USE: /[a-zA-Z]\w*/
 
-NAME_DEFINE: /[a-zA-Z_]\w*/
+NAME_DEFINE: /[a-zA-Z]\w*/
 
-NAME_USE: /[a-zA-Z_]\w*/
+NAME_DEFAULT: /[_]\w*/
 
-NAME_DEFAULT: /[a-zA-Z_]\w*/
+
+
+
 
 COMMENT: /#.*(\n[\t ]*)+/ | LONG_STRING
 _NL: ( /(\r?\n[\t ]*)+/ | COMMENT)+
