@@ -44,12 +44,10 @@ class PythonVarTrackingIncrementalParser(PythonIncrementalParser):
                 blexer = interactive.lexer_thread.lexer.lexer
                 
                 token = blexer.next_token(lexer_state)
-                print(token)
                 self.lexer_pos = lexer_state.line_ctr.char_pos
 
                 if token.type == "NAME_DEFINE":
                     self._defined_vars.add(token.value)
-                    print(self._defined_vars.add(token.value))
 
                 # Perform postlexing indentation
                 if token.type == indenter.NL_type:
