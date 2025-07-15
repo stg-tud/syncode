@@ -21,9 +21,9 @@ class SymbolPosMap:
         'OPERATOR': [(3, 3), (7, 7)]
     }
     """
-    def __init__(self):
-        self._pos_map = defaultdict(list)
-    
+    def __init__(self) -> None:
+        self._pos_map: dict[str, list[tuple[int, int]]] = defaultdict(list)
+            
     def add_symbol_pos(self, symbol:str, pos:Tuple[int, int]):
         """
         Adds the position of the symbol in the code.
