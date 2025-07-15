@@ -26,7 +26,7 @@ class SymbolPosMap:
     }
     """
     def __init__(self):
-        self._pos_map = defaultdict(list)
+        self._pos_map: dict[str, list[tuple[int, int]]] = defaultdict(list)
     
     def add_symbol_pos(self, symbol:str, pos:Tuple[int, int]):
         """
@@ -114,7 +114,7 @@ class SymbolPosMap:
                         pos=(lexer_tokens[idx].start_pos, lexer_tokens[idx].end_pos)
                         )
 
-    def _update_symbol_pos_map_nonterminals(self, parser_state: ParserState, token: Token):
+    def _update_symbol_pos_map_nonterminals(self, parser_state: ParserState, token: Token) -> None:
         """
         Updates the uc_map with the current token for non-terminals. 
 

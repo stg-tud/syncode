@@ -75,7 +75,7 @@ class GrammarConstrainer:
         self._ignore_whitespace = self._get_ignore_whitespace(self.grammar)
 
         # Create parser
-        self.inc_parser: IncrementalParser = create_parser(self.grammar, parser=parser, ignore_whitespace=self._ignore_whitespace)
+        self.inc_parser: IncrementalParser = create_parser(self.grammar, parser=parser, ignore_whitespace=self._ignore_whitespace, use_symbol_pos_map=True)
 
         # Load dfa mask store with specified mode (grammar_mask or grammar_strict)
         self.dfa_mask_store = MaskStore.init_mask_store(
