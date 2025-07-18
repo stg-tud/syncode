@@ -20,7 +20,7 @@ decorators: decorator+
 decorated: decorators (classdef | funcdef | async_funcdef)
 
 async_funcdef: "async" funcdef
-funcdef: "def" NAME_DEFINE "(" parameters? ")" ["->" test] ":" ( suite | _NL)
+funcdef: "def" name_define "(" parameters? ")" ["->" test] ":" ( suite | _NL)
 
 !parameters: paramvalue ("," paramvalue)* ["," [ starparams | kwparams]]
           | starparams
@@ -29,13 +29,13 @@ starparams: "*" typedparam? ("," paramvalue)* ["," kwparams]
 kwparams: "**" typedparam
 
 ?paramvalue: typedparam ["=" test]
-?typedparam: NAME_DEFINE [":" test]
+?typedparam: name_define [":" test]
 
 !varargslist: (vfpdef ["=" test] ("," vfpdef ["=" test])* ["," [ "*" [vfpdef] ("," vfpdef ["=" test])* ["," ["**" vfpdef [","]]] | "**" vfpdef [","]]]
   | "*" [vfpdef] ("," vfpdef ["=" test])* ["," ["**" vfpdef [","]]]
   | "**" vfpdef [","])
 
-vfpdef: NAME_DEFINE
+vfpdef: name_define
 
 ?stmt: (simple_stmt | compound_stmt ) ["eof"]
 !?simple_stmt: small_stmt (";" small_stmt)* [";"] _NL
@@ -59,13 +59,13 @@ import_name: "import" dotted_as_names
 // note below: the ("." | "...") is necessary because "..." is tokenized as ELLIPSIS
 import_from: "from" (dots? dotted_name | dots) "import" ("*" | "(" import_as_names ")" | import_as_names)
 !dots: "."+
-import_as_name: NAME ["as" NAME]
-dotted_as_name: dotted_name ["as" NAME]
+import_as_name: name_default | name_default "as" name_default
+dotted_as_name: name_default ("." name_default)* | dotted_name "as" name_default
 !import_as_names: import_as_name ("," import_as_name)* [","]
 dotted_as_names: dotted_as_name ("," dotted_as_name)*
-dotted_name: NAME ("." NAME)*
-global_stmt: "global" NAME ("," NAME)*
-nonlocal_stmt: "nonlocal" NAME ("," NAME)*
+dotted_name: name_default ("." name_default)*
+global_stmt: "global" name_default ("," name_default)*
+nonlocal_stmt: "nonlocal" name_default ("," name_default)*
 assert_stmt: "assert" test ["," test]
 
 compound_stmt: if_stmt | while_stmt | for_stmt | try_stmt | with_stmt | funcdef | classdef | decorated | async_stmt
@@ -77,7 +77,7 @@ try_stmt: ("try" ":" suite ((except_clause ":" suite)+ ["else" ":" suite] ["fina
 with_stmt: "with" with_item ("," with_item)*  ":" suite
 with_item: test ["as" expr]
 // NB compile.c makes sure that the default except clause is last
-except_clause: "except" [test ["as" NAME_DEFINE]]
+except_clause: "except" [test ["as" name_define]]
 suite: simple_stmt | _NL _INDENT stmt+ _DEDENT
 
 ?test: or_test ["if" or_test "else" test] | lambdef
@@ -112,13 +112,13 @@ star_expr: "*" expr
 
 ?atom_expr: atom_expr "(" [arguments] ")"      -> funccall
           | atom_expr "[" subscriptlist "]"  -> getitem
-          | atom_expr "." NAME_DEFAULT               -> getattr
+          | atom_expr "." name_default               -> getattr
           | atom
 
 ?atom: "(" [yield_expr|testlist_comp] ")" -> tuple
      | "[" [testlist_comp] "]"  -> list
      | "{" [dictorsetmaker] "}" -> dict
-     | NAME_USE -> var
+     | name_use -> var
      | number | string+
      | "(" test ")"
      | "..." -> ellipsis
@@ -134,7 +134,7 @@ sliceop: ":" [test]
 !testlist: test ("," test)* [","]
 !dictorsetmaker: ( ((test ":" test | "**" expr) (comp_for | ("," (test ":" test | "**" expr))* [","])) | ((test | star_expr) (comp_for | ("," (test | star_expr))* [","])) )
 
-classdef: "class" NAME_DEFINE ["(" [arguments] ")"] ":" suite
+classdef: "class" name_define ["(" [arguments] ")"] ":" suite
 !arguments: argvalue ("," argvalue)*  ["," [ starargs | kwargs]]
          | starargs
          | kwargs
@@ -151,7 +151,7 @@ comp_for: "for" exprlist "in" or_test [comp_iter]
 comp_if: "if" test_nocond [comp_iter]
 
 // not used in grammar, but may appear in "node" passed from Parser to Compiler
-encoding_decl: NAME_DEFAULT
+encoding_decl: name_default
 
 yield_expr: "yield" [yield_arg]
 yield_arg: "from" test | testlist
@@ -165,11 +165,11 @@ string: STRING | LONG_STRING
 
 NAME: /[a-zA-Z_]\w*/
 
-NAME_DEFINE: /[a-zA-Z_]\w*/
+name_use:NAME
 
-NAME_USE: /[a-zA-Z_]\w*/
+name_define:NAME
 
-NAME_DEFAULT: /[a-zA-Z_]\w*/
+name_default:NAME
 
 COMMENT: /#.*(\n[\t ]*)+/ | LONG_STRING
 _NL: ( /(\r?\n[\t ]*)+/ | COMMENT)+
