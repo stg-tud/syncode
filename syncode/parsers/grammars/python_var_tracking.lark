@@ -39,11 +39,20 @@ vfpdef: name_define
 
 ?stmt: (simple_stmt | compound_stmt ) ["eof"]
 !?simple_stmt: small_stmt (";" small_stmt)* [";"] _NL
-?small_stmt: (expr_stmt | del_stmt | pass_stmt | flow_stmt | import_stmt | global_stmt | nonlocal_stmt | assert_stmt)
-?expr_stmt: testlist_star_expr (annassign | augassign (yield_expr|testlist)
-         | ("=" (yield_expr|testlist_star_expr))*)
-annassign: ":" test ["=" test]
+?small_stmt: (expr_stmt | expr_stmt_define | del_stmt | pass_stmt | flow_stmt | import_stmt | global_stmt | nonlocal_stmt | assert_stmt)
+
+?expr_stmt_define: testlist_star_expr_define (annassign_define | ("=" (yield_expr|testlist_star_expr))*)
+
+
+?expr_stmt: testlist_star_expr (annassign | augassign (yield_expr|testlist))
+
+annassign_define: ":" test "=" test
+annassign: ":" test
+
 !?testlist_star_expr: (test|star_expr) ("," (test|star_expr))* [","]
+!?testlist_star_expr_define: (test_define|star_expr_define) ("," (test_define|star_expr_define))* [","]
+
+
 !augassign: ("+=" | "-=" | "*=" | "@=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>=" | "**=" | "//=")
 // For normal and annotated assignments, additional restrictions enforced by the interpreter
 del_stmt: "del" exprlist
@@ -81,6 +90,8 @@ except_clause: "except" [test ["as" name_define]]
 suite: simple_stmt | _NL _INDENT stmt+ _DEDENT
 
 ?test: or_test ["if" or_test "else" test] | lambdef
+?test_define: atom_expr_define
+
 ?test_nocond: or_test | lambdef_nocond
 lambdef: "lambda" [varargslist] ":" test
 lambdef_nocond: "lambda" [varargslist] ":" test_nocond
@@ -91,6 +102,9 @@ lambdef_nocond: "lambda" [varargslist] ":" test_nocond
          | comparison
 ?comparison: expr (_comp_op expr)*
 star_expr: "*" expr
+star_expr_define: "*" expr_define
+expr_define: atom_expr_define
+
 ?expr: xor_expr ("|" xor_expr)*
 ?xor_expr: and_expr ("^" and_expr)*
 ?and_expr: shift_expr ("&" shift_expr)*
@@ -115,6 +129,11 @@ star_expr: "*" expr
           | atom_expr "." name_default               -> getattr
           | atom
 
+?atom_expr_define: atom_expr "[" subscriptlist "]"
+          | atom_expr "." name_default
+          | atom_define
+
+
 ?atom: "(" [yield_expr|testlist_comp] ")" -> tuple
      | "[" [testlist_comp] "]"  -> list
      | "{" [dictorsetmaker] "}" -> dict
@@ -126,7 +145,13 @@ star_expr: "*" expr
      | "True"    -> const_true
      | "False"   -> const_false
 
+?atom_define: "(" [testlist_comp_define] ")"
+     | "[" [testlist_comp_define] "]"
+     | "(" test_define ")" | name_define
+
 !?testlist_comp: (test|star_expr) [comp_for | ("," (test|star_expr))+ [","] | ","]
+!?testlist_comp_define: (test_define|star_expr_define)
+
 !subscriptlist: subscript ("," subscript)* [","]
 subscript: test | [test] ":" [test] [sliceop]
 sliceop: ":" [test]
@@ -165,11 +190,11 @@ string: STRING | LONG_STRING
 
 NAME: /[a-zA-Z_]\w*/
 
-name_use:NAME
+name_use: NAME
 
-name_define:NAME
+name_define: NAME
 
-name_default:NAME
+name_default: NAME
 
 COMMENT: /#.*(\n[\t ]*)+/ | LONG_STRING
 _NL: ( /(\r?\n[\t ]*)+/ | COMMENT)+
