@@ -44,29 +44,33 @@ class PythonVarTrackingIncrementalParser(IGParser):
         """
         return [v for v in self._defined_vars]
     
-    def get_vars(self, values: Iterable[Token | Tree]) -> list[tuple[str, str]]:
-        next_name_type:str = "DEFAULT"
-        vars:list[tuple[str, str]] = []
+    def get_vars(self, values: Iterable[Token | Tree], next_name_type: str | None = None) -> list[tuple[str, str]]:
+        if next_name_type is None:
+            next_name_type = "USE"
+        vars: list[tuple[str, str]] = []
 
         for it in values:
             if isinstance(it, Token):
                 if it.type == "RULE":
-                    if it.value == "name_define":
+                    # if it.value == "name_define":
+                    #     next_name_type = "USE"
+                    # el
+                    if it.value in ("function_name", "param_var_name", "except_exception_name", "with_as_expr", "def_expr_list", "assign_expr", "assign_exprs"):
                         next_name_type = "DEFINE"
-                    elif it.value == "name_use":
-                        next_name_type = "USE"
-                    else: # it.value == "NAME_DEFAULT":
-                        next_name_type = "DEFAULT"
+                        print("found Rule:", it.value)
                 elif it.type == "NAME":
                     vars.append((it.value, next_name_type))
                     
             
             elif isinstance(it, Tree):
                 data = it.data
+                
                 if isinstance(data, Token):
-                    vars += self.get_vars([data, *it.children])
+                    vars += self.get_vars([data, *it.children], next_name_type)
                 else:
-                    vars += self.get_vars(it.children)
+                    if isinstance(data, str) and data in ("assign_exprs", "assign_expr"):
+                        next_name_type = "DEFINE"
+                    vars += self.get_vars(it.children, next_name_type)
 
         return vars
 
@@ -101,6 +105,7 @@ class PythonVarTrackingIncrementalParser(IGParser):
                     stored_state = self.cur_pos_to_parser_state[key]
                     parser_state = stored_state[1]
                     if isinstance(parser_state, ParserState):
+                        print(parser_state.value_stack)
                         vars = self.get_vars(parser_state.value_stack)          
                     else:
                         print(f"Warning: Expected ParserState, got {type(parser_state)} for key {key}")

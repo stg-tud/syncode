@@ -20,7 +20,7 @@ decorators: decorator+
 decorated: decorators (classdef | funcdef | async_funcdef)
 
 async_funcdef: "async" funcdef
-funcdef: "def" name_define "(" parameters? ")" ["->" test] ":" ( suite | _NL)
+funcdef: "def" function_name "(" parameters? ")" ["->" test] ":" ( suite | _NL)
 
 !parameters: paramvalue ("," paramvalue)* ["," [ starparams | kwparams]]
           | starparams
@@ -29,30 +29,23 @@ starparams: "*" typedparam? ("," paramvalue)* ["," kwparams]
 kwparams: "**" typedparam
 
 ?paramvalue: typedparam ["=" test]
-?typedparam: name_define [":" test]
+?typedparam: param_var_name [":" test]
 
 !varargslist: (vfpdef ["=" test] ("," vfpdef ["=" test])* ["," [ "*" [vfpdef] ("," vfpdef ["=" test])* ["," ["**" vfpdef [","]]] | "**" vfpdef [","]]]
   | "*" [vfpdef] ("," vfpdef ["=" test])* ["," ["**" vfpdef [","]]]
   | "**" vfpdef [","])
 
-vfpdef: name_define
+vfpdef: param_var_name
 
 ?stmt: (simple_stmt | compound_stmt ) ["eof"]
 !?simple_stmt: small_stmt (";" small_stmt)* [";"] _NL
-?small_stmt: (expr_stmt | expr_stmt_define | del_stmt | pass_stmt | flow_stmt | import_stmt | global_stmt | nonlocal_stmt | assert_stmt)
-
-?expr_stmt_define: testlist_star_expr_define (annassign_define | ("=" (yield_expr|testlist_star_expr))*)
-
-
-?expr_stmt: testlist_star_expr (annassign | augassign (yield_expr|testlist))
-
-annassign_define: ":" test "=" test
-annassign: ":" test
-
+?small_stmt: (expr_stmt | del_stmt | pass_stmt | flow_stmt | import_stmt | global_stmt | nonlocal_stmt | assert_stmt)
+?expr_stmt: testlist_star_expr annassign -> assign_expr
+         | testlist_star_expr augassign (yield_expr|testlist)
+         | testlist_star_expr ("=" (yield_expr|testlist_star_expr))+ -> assign_exprs
+         | testlist_star_expr
+annassign: ":" test ["=" test]
 !?testlist_star_expr: (test|star_expr) ("," (test|star_expr))* [","]
-!?testlist_star_expr_define: (test_define|star_expr_define) ("," (test_define|star_expr_define))* [","]
-
-
 !augassign: ("+=" | "-=" | "*=" | "@=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>=" | "**=" | "//=")
 // For normal and annotated assignments, additional restrictions enforced by the interpreter
 del_stmt: "del" exprlist
@@ -68,30 +61,31 @@ import_name: "import" dotted_as_names
 // note below: the ("." | "...") is necessary because "..." is tokenized as ELLIPSIS
 import_from: "from" (dots? dotted_name | dots) "import" ("*" | "(" import_as_names ")" | import_as_names)
 !dots: "."+
-import_as_name: name_default | name_default "as" name_default
-dotted_as_name: name_default ("." name_default)* | dotted_name "as" name_default
+import_as_name: NAME ["as" NAME]
+dotted_as_name: dotted_name ["as" NAME]
 !import_as_names: import_as_name ("," import_as_name)* [","]
 dotted_as_names: dotted_as_name ("," dotted_as_name)*
-dotted_name: name_default ("." name_default)*
-global_stmt: "global" name_default ("," name_default)*
-nonlocal_stmt: "nonlocal" name_default ("," name_default)*
+dotted_name: NAME ("." NAME)*
+global_stmt: "global" NAME ("," NAME)*
+nonlocal_stmt: "nonlocal" NAME ("," NAME)*
 assert_stmt: "assert" test ["," test]
 
 compound_stmt: if_stmt | while_stmt | for_stmt | try_stmt | with_stmt | funcdef | classdef | decorated | async_stmt
 async_stmt: "async" (funcdef | with_stmt | for_stmt)
 if_stmt: "if" test ":" suite ("elif" test ":" suite)* ["else" ":" suite]
 while_stmt: "while" test ":" suite ["else" ":" suite]
-for_stmt: "for" exprlist "in" testlist ":" suite ["else" ":" suite]
+
+def_expr_list: exprlist
+for_stmt: "for" def_expr_list "in" testlist ":" suite ["else" ":" suite]
 try_stmt: ("try" ":" suite ((except_clause ":" suite)+ ["else" ":" suite] ["finally" ":" suite] | "finally" ":" suite))
 with_stmt: "with" with_item ("," with_item)*  ":" suite
-with_item: test ["as" expr]
+with_as_expr: expr
+with_item: test ["as" with_as_expr]
 // NB compile.c makes sure that the default except clause is last
-except_clause: "except" [test ["as" name_define]]
+except_clause: "except" [test ["as" except_exception_name]]
 suite: simple_stmt | _NL _INDENT stmt+ _DEDENT
 
 ?test: or_test ["if" or_test "else" test] | lambdef
-?test_define: atom_expr_define
-
 ?test_nocond: or_test | lambdef_nocond
 lambdef: "lambda" [varargslist] ":" test
 lambdef_nocond: "lambda" [varargslist] ":" test_nocond
@@ -102,9 +96,6 @@ lambdef_nocond: "lambda" [varargslist] ":" test_nocond
          | comparison
 ?comparison: expr (_comp_op expr)*
 star_expr: "*" expr
-star_expr_define: "*" expr_define
-expr_define: atom_expr_define
-
 ?expr: xor_expr ("|" xor_expr)*
 ?xor_expr: and_expr ("^" and_expr)*
 ?and_expr: shift_expr ("&" shift_expr)*
@@ -126,18 +117,13 @@ expr_define: atom_expr_define
 
 ?atom_expr: atom_expr "(" [arguments] ")"      -> funccall
           | atom_expr "[" subscriptlist "]"  -> getitem
-          | atom_expr "." name_default               -> getattr
+          | atom_expr "." NAME               -> getattr
           | atom
-
-?atom_expr_define: atom_expr "[" subscriptlist "]"
-          | atom_expr "." name_default
-          | atom_define
-
 
 ?atom: "(" [yield_expr|testlist_comp] ")" -> tuple
      | "[" [testlist_comp] "]"  -> list
      | "{" [dictorsetmaker] "}" -> dict
-     | name_use -> var
+     | NAME -> var
      | number | string+
      | "(" test ")"
      | "..." -> ellipsis
@@ -145,13 +131,7 @@ expr_define: atom_expr_define
      | "True"    -> const_true
      | "False"   -> const_false
 
-?atom_define: "(" [testlist_comp_define] ")"
-     | "[" [testlist_comp_define] "]"
-     | "(" test_define ")" | name_define
-
 !?testlist_comp: (test|star_expr) [comp_for | ("," (test|star_expr))+ [","] | ","]
-!?testlist_comp_define: (test_define|star_expr_define)
-
 !subscriptlist: subscript ("," subscript)* [","]
 subscript: test | [test] ":" [test] [sliceop]
 sliceop: ":" [test]
@@ -159,7 +139,7 @@ sliceop: ":" [test]
 !testlist: test ("," test)* [","]
 !dictorsetmaker: ( ((test ":" test | "**" expr) (comp_for | ("," (test ":" test | "**" expr))* [","])) | ((test | star_expr) (comp_for | ("," (test | star_expr))* [","])) )
 
-classdef: "class" name_define ["(" [arguments] ")"] ":" suite
+classdef: "class" NAME ["(" [arguments] ")"] ":" suite
 !arguments: argvalue ("," argvalue)*  ["," [ starargs | kwargs]]
          | starargs
          | kwargs
@@ -176,7 +156,7 @@ comp_for: "for" exprlist "in" or_test [comp_iter]
 comp_if: "if" test_nocond [comp_iter]
 
 // not used in grammar, but may appear in "node" passed from Parser to Compiler
-encoding_decl: name_default
+encoding_decl: NAME
 
 yield_expr: "yield" [yield_arg]
 yield_arg: "from" test | testlist
@@ -188,14 +168,11 @@ number: DEC_NUMBER | HEX_NUMBER | OCT_NUMBER | FLOAT_NUMBER
 string: STRING | LONG_STRING 
 // Tokens
 
+function_name: NAME
+param_var_name: NAME
+except_exception_name: NAME
+
 NAME: /[a-zA-Z_]\w*/
-
-name_use: NAME
-
-name_define: NAME
-
-name_default: NAME
-
 COMMENT: /#.*(\n[\t ]*)+/ | LONG_STRING
 _NL: ( /(\r?\n[\t ]*)+/ | COMMENT)+
 
