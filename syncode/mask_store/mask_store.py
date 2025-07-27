@@ -379,7 +379,9 @@ class MaskStore:
             get_list (bool, optional): If True, returns the list of tokens instead of the mask. Defaults to False.
         """
         cur_incomplete_string = r.remainder
-        assert type(cur_incomplete_string) == bytes
+
+        #removed for compatibility with itergen
+        #assert type(cur_incomplete_string) == bytes
 
         if cur_incomplete_string is None:
             return torch.ones(len(self._vocab), dtype=torch.bool)
