@@ -61,13 +61,18 @@ import_name: "import" dotted_as_names
 // note below: the ("." | "...") is necessary because "..." is tokenized as ELLIPSIS
 import_from: "from" (dots? dotted_name | dots) "import" ("*" | "(" import_as_names ")" | import_as_names)
 !dots: "."+
-import_as_name: NAME ["as" NAME]
-dotted_as_name: dotted_name ["as" NAME]
+
+// to be checked in post-processing:
+// No define import_from -> dotted_name -> as_name
+// No define (dotted_as_name -> dotted_name -> as_name) IFF dotted_as_name -> as_name exists
+
+import_as_name: as_name | NAME "as" as_name
+dotted_as_name: dotted_name ["as" as_name]
 !import_as_names: import_as_name ("," import_as_name)* [","]
 dotted_as_names: dotted_as_name ("," dotted_as_name)*
-dotted_name: NAME ("." NAME)*
-global_stmt: "global" NAME ("," NAME)*
-nonlocal_stmt: "nonlocal" NAME ("," NAME)*
+dotted_name: as_name ("." NAME)*
+global_stmt: "global" ignore_name ("," ignore_name)*
+nonlocal_stmt: "nonlocal" ignore_name ("," ignore_name)*
 assert_stmt: "assert" test ["," test]
 
 compound_stmt: if_stmt | while_stmt | for_stmt | try_stmt | with_stmt | funcdef | classdef | decorated | async_stmt
@@ -139,7 +144,7 @@ sliceop: ":" [test]
 !testlist: test ("," test)* [","]
 !dictorsetmaker: ( ((test ":" test | "**" expr) (comp_for | ("," (test ":" test | "**" expr))* [","])) | ((test | star_expr) (comp_for | ("," (test | star_expr))* [","])) )
 
-classdef: "class" NAME ["(" [arguments] ")"] ":" suite
+classdef: "class" class_name ["(" [arguments] ")"] ":" suite
 !arguments: argvalue ("," argvalue)*  ["," [ starargs | kwargs]]
          | starargs
          | kwargs
@@ -169,8 +174,12 @@ string: STRING | LONG_STRING
 // Tokens
 
 function_name: NAME
+class_name: NAME
+
 param_var_name: NAME
 except_exception_name: NAME
+as_name: NAME
+ignore_name: NAME
 
 NAME: /[a-zA-Z_]\w*/
 COMMENT: /#.*(\n[\t ]*)+/ | LONG_STRING

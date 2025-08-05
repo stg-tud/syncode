@@ -1,3 +1,4 @@
+import enum
 import logging
 from typing import Iterable, Tuple
 
@@ -12,6 +13,126 @@ from syncode.parsers.python_parser import PythonIndenter
 from syncode.larkm.tree import Tree
 
 logger = logging.getLogger(__name__)
+
+
+class VarUseType(enum.StrEnum):
+    """
+    Enum-like class to represent the type of variable use.
+    """
+
+    DEFINE = "DEFINE"
+    USE = "USE"
+    IGNORE = "IGNORE"
+
+
+class TreeVisitor(lark.visitors.Visitor):
+    def __init__(self):
+        super().__init__()
+        self.path: list[str] = []
+        self.vars: list[tuple[str, VarUseType]] = []
+        self.next_name_type: VarUseType = VarUseType.USE
+        self._in_assign_expr = False
+        self._in_lhs_assign = False
+
+        for define_function in [
+            "function_name",
+            "class_name",
+            "param_var_name",
+            "except_exception_name",
+            "with_as_expr",
+            "def_expr_list",
+        ]:
+            setattr(self, define_function, self.default_define)
+
+        # "assign_expr", "assign_exprs",
+        for assign_function in [
+            "assign_expr",
+            "assign_exprs",
+        ]:
+            setattr(self, assign_function, self.default_define_expr)
+
+    def visit_topdown(self, tree: Tree) -> Tree:
+        "Visit the tree, starting at the root, and ending at the leaves (top-down)"
+        self.path.append(tree.data)
+
+        for subtree in [t for t in tree.children if isinstance(t, Tree)]:
+            self._call_userfunc(subtree)
+
+        self.path.pop()
+        return tree
+
+    def __default__(self, tree: Tree):
+        for node in tree.children:
+            if isinstance(node, Tree):
+                self.path.append(tree.data)
+                self._call_userfunc(node)
+                self.path.pop()
+
+            if isinstance(node, Token) and node.type == "NAME":
+                ignore = self.next_name_type == VarUseType.IGNORE
+                if not ignore:
+                    self.vars.append((node.value, self.next_name_type))
+
+    def default_define(self, tree: Tree):
+        self.next_name_type = VarUseType.DEFINE
+        self.__default__(tree)
+        self.next_name_type = VarUseType.USE
+
+    def default_define_expr(self, tree: Tree):
+        self._in_assign_expr = True
+        self.__default__(tree)
+        self._in_assign_expr = False
+
+    def testlist_star_expr(self, tree: Tree):
+        if not self._in_assign_expr:
+            return self.__default__(tree)
+
+        self._in_assign_expr = False
+        self._in_lhs_assign = True
+        self.__default__(tree)
+        self._in_lhs_assign = False
+
+    def var(self, tree: Tree):
+        # If we are in the lhs of an assigments
+        if not self._in_lhs_assign:
+            print("atom not in lhs_assign, returning default", self.path)
+            return self.__default__(tree)
+
+        # and we did not come from getitem or getattr
+        if self.path[-2] in ["getitem", "getattr"]:
+            return self.__default__(tree)
+
+        # the variable "usage" should be a define
+        self.default_define(tree)
+
+    def import_stmt(self, tree: Tree):
+        self.next_name_type = VarUseType.IGNORE
+        self.__default__(tree)
+        self.next_name_type = VarUseType.USE
+
+    def dotted_name(self, tree: Tree):
+        var_use_backup = self.next_name_type
+        if self.path[-1] == "import_from":
+            self.next_name_type = VarUseType.IGNORE
+
+        self.__default__(tree)
+        self.next_name_type = var_use_backup
+
+    def as_name(self, tree: Tree):
+        next_name_type_backup = self.next_name_type
+        self.next_name_type = VarUseType.DEFINE
+
+        # import_from -> dotted_name -> as_name
+        if self.path[-2:] == ["import_from", "dotted_name"]:
+            self.next_name_type = VarUseType.IGNORE
+
+        # No define (dotted_as_name -> dotted_name -> as_name) IFF dotted_as_name -> as_name exists
+        if self.path and self.path[-1] == "dotted_as_name":
+            self.vars = self.vars[:-1]  # remove last define
+
+        self.__default__(tree)
+
+        self.next_name_type = next_name_type_backup
 
 
 class PythonVarTrackingIncrementalParser(IGParser):
@@ -45,48 +166,6 @@ class PythonVarTrackingIncrementalParser(IGParser):
         """
         return [v for v in self._defined_vars]
 
-    def get_vars(
-        self, values: Iterable[Token | Tree], next_name_type: str | None = None
-    ) -> list[tuple[str, str]]:
-        if next_name_type is None:
-            next_name_type = "USE"
-        vars: list[tuple[str, str]] = []
-
-        for it in values:
-            if isinstance(it, Token):
-                if it.type == "RULE":
-                    # if it.value == "name_define":
-                    #     next_name_type = "USE"
-                    # el
-                    if it.value in (
-                        "function_name",
-                        "param_var_name",
-                        "except_exception_name",
-                        "with_as_expr",
-                        "def_expr_list",
-                        "assign_expr",
-                        "assign_exprs",
-                    ):
-                        next_name_type = "DEFINE"
-                        print("found Rule:", it.value)
-                elif it.type == "NAME":
-                    vars.append((it.value, next_name_type))
-
-            elif isinstance(it, Tree):
-                data = it.data
-
-                if isinstance(data, Token):
-                    vars += self.get_vars([data, *it.children], next_name_type)
-                else:
-                    if isinstance(data, str) and data in (
-                        "assign_exprs",
-                        "assign_expr",
-                    ):
-                        next_name_type = "DEFINE"
-                    vars += self.get_vars(it.children, next_name_type)
-
-        return vars
-
     def _lex_code(self, code: str) -> Tuple[Iterable[Token], bool]:
         # Collect Lexer tokens
         lexer_tokens: Iterable[Token] = []
@@ -100,7 +179,7 @@ class PythonVarTrackingIncrementalParser(IGParser):
 
         self._defined_vars.clear()
 
-        vars: list[tuple[str, str]] = []
+        vars: list[tuple[str, VarUseType]] = []
 
         try:
             while lexer_state.line_ctr.char_pos < len(lexer_state.text):
@@ -120,14 +199,17 @@ class PythonVarTrackingIncrementalParser(IGParser):
                     stored_state = self.cur_pos_to_parser_state[key]
                     parser_state = stored_state[1]
                     if isinstance(parser_state, ParserState):
-                        print(parser_state.value_stack)
-                        vars = self.get_vars(parser_state.value_stack)
+                        # print(parser_state.value_stack)
+                        vars_visitor = TreeVisitor()
+                        vars_visitor.visit_topdown(
+                            Tree("ROOT", parser_state.value_stack)
+                        )
+
+                        vars = vars_visitor.vars
                     else:
-                        print(
+                        logger.error(
                             f"Warning: Expected ParserState, got {type(parser_state)} for key {key}"
                         )
-                else:
-                    print(f"No stored state found for key {key}")
 
                 if token.type == "NAME_DEFINE":
                     self._defined_vars.add(token.value)
@@ -148,6 +230,7 @@ class PythonVarTrackingIncrementalParser(IGParser):
         except EOFError as e:
             pass
 
-        print("vars:", vars)
+        # print("vars:", vars)
+        logger.debug("vars: %s", vars)
 
         return lexer_tokens, lexing_incomplete
