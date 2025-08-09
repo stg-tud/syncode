@@ -95,7 +95,6 @@ class TreeVisitor(lark.visitors.Visitor):
     def var(self, tree: Tree):
         # If we are in the lhs of an assigments
         if not self._in_lhs_assign:
-            print("atom not in lhs_assign, returning default", self.path)
             return self.__default__(tree)
 
         # and we did not come from getitem or getattr
