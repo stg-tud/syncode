@@ -147,6 +147,7 @@ class PythonVarTrackingIncrementalParser(IGParser):
         self.tab_len = indenter.tab_len
 
         self._defined_vars: set[str] = set()
+        self._used_vars: set[str] = set()
 
     def _get_indentation(self, partial_code) -> int:
         m = regex.match(
@@ -233,8 +234,14 @@ class PythonVarTrackingIncrementalParser(IGParser):
             if type == VarUseType.DEFINE:
                 self._defined_vars.add(name)
 
+            if type == VarUseType.USE:
+                self._used_vars.add(name)
+
         return lexer_tokens, lexing_incomplete
     
-    def get_defined_vars(self):
+    def get_defined_vars(self) -> set[str]:
         return self._defined_vars
+    
+    def get_used_vars(self) -> set[str]:
+        return self._used_vars
     
