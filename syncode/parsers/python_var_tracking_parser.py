@@ -146,7 +146,7 @@ class PythonVarTrackingIncrementalParser(IGParser):
             indenter.tab_len = self._get_indentation(partial_code)
         self.tab_len = indenter.tab_len
 
-        self._defined_vars: set[Token] = set()
+        self._defined_vars: set[str] = set()
 
     def _get_indentation(self, partial_code) -> int:
         m = regex.match(
