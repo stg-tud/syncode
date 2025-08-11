@@ -210,9 +210,6 @@ class PythonVarTrackingIncrementalParser(IGParser):
                             f"Warning: Expected ParserState, got {type(parser_state)} for key {key}"
                         )
 
-                if token.type == "NAME_DEFINE":
-                    self._defined_vars.add(token.value)
-
                 # Perform postlexing indentation
                 if token.type == indenter.NL_type:
                     lexer_tokens += indenter._handle_NL(token)
@@ -232,4 +229,12 @@ class PythonVarTrackingIncrementalParser(IGParser):
         # print("vars:", vars)
         logger.debug("vars: %s", vars)
 
+        for name, type in vars:
+            if type == VarUseType.DEFINE:
+                self._defined_vars.add(name)
+
         return lexer_tokens, lexing_incomplete
+    
+    def get_defined_vars(self):
+        return self._defined_vars
+    
