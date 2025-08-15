@@ -229,7 +229,7 @@ class PythonVarTrackingIncrementalParser(IGParser):
             pass
 
         # print("vars:", vars)
-        logger.debug("vars: %s", vars)
+        logger.debug("vars: %s", set(vars))
 
         for name, type in vars:
             if type == VarUseType.DEFINE:
