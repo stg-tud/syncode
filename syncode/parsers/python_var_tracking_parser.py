@@ -178,6 +178,7 @@ class PythonVarTrackingIncrementalParser(IGParser):
         indenter.indent_level, indenter.paren_level = [0], 0
 
         self._defined_vars.clear()
+        self._used_vars.clear()
 
         vars: list[tuple[str, VarUseType]] = []
 
