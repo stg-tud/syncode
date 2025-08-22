@@ -64,7 +64,7 @@ class TreeVisitor(lark.visitors.Visitor):
     def __default__(self, tree: Tree):
         for node in tree.children:
             if isinstance(node, Tree):
-                self.path.append(tree.data)
+                self.path.append(node.data)
                 self._call_userfunc(node)
                 self.path.pop()
 
@@ -74,9 +74,10 @@ class TreeVisitor(lark.visitors.Visitor):
                     self.vars.append((node.value, self.next_name_type))
 
     def default_define(self, tree: Tree):
+        next_name_type = self.next_name_type
         self.next_name_type = VarUseType.DEFINE
         self.__default__(tree)
-        self.next_name_type = VarUseType.USE
+        self.next_name_type = next_name_type
 
     def default_define_expr(self, tree: Tree):
         self._in_assign_expr = True
@@ -92,16 +93,27 @@ class TreeVisitor(lark.visitors.Visitor):
         self.__default__(tree)
         self._in_lhs_assign = False
 
+    def getitem(self, tree: Tree):
+        return self.getattr(tree)
+
+    def getattr(self, tree: Tree):
+        
+        next_name_type = self.next_name_type
+        self.next_name_type = VarUseType.IGNORE
+
+        self.__default__(tree)
+        self.next_name_type = next_name_type
+
     def var(self, tree: Tree):
         # If we are in the lhs of an assigments
-        if not self._in_lhs_assign:
-            return self.__default__(tree)
+        if (not self._in_lhs_assign) or self.path[-2] in ["getitem", "getattr"]:
+            next_name_type = self.next_name_type
+            self.next_name_type = VarUseType.USE
+            self.__default__(tree)
+            self.next_name_type = next_name_type
+            return
 
-        # and we did not come from getitem or getattr
-        if self.path[-2] in ["getitem", "getattr"]:
-            return self.__default__(tree)
 
-        # the variable "usage" should be a define
         self.default_define(tree)
 
     def import_stmt(self, tree: Tree):
