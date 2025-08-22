@@ -39,8 +39,6 @@ class TreeVisitor(lark.visitors.Visitor):
             "class_name",
             "param_var_name",
             "except_exception_name",
-            "with_as_expr",
-            "def_expr_list",
         ]:
             setattr(self, define_function, self.default_define)
 
@@ -84,6 +82,16 @@ class TreeVisitor(lark.visitors.Visitor):
         self.__default__(tree)
         self._in_assign_expr = False
 
+    def def_expr_list(self, tree: Tree):
+        self.with_as_expr(tree)
+
+    def with_as_expr(self, tree: Tree):
+        self._in_assign_expr = True
+        self._in_lhs_assign = True
+        self.__default__(tree)
+        self._in_lhs_assign = False
+        self._in_assign_expr = False
+
     def testlist_star_expr(self, tree: Tree):
         if not self._in_assign_expr:
             return self.__default__(tree)
@@ -97,7 +105,6 @@ class TreeVisitor(lark.visitors.Visitor):
         return self.getattr(tree)
 
     def getattr(self, tree: Tree):
-        
         next_name_type = self.next_name_type
         self.next_name_type = VarUseType.IGNORE
 
@@ -112,7 +119,6 @@ class TreeVisitor(lark.visitors.Visitor):
             self.__default__(tree)
             self.next_name_type = next_name_type
             return
-
 
         self.default_define(tree)
 
@@ -251,10 +257,9 @@ class PythonVarTrackingIncrementalParser(IGParser):
                 self._used_vars.add(name)
 
         return lexer_tokens, lexing_incomplete
-    
+
     def get_defined_vars(self) -> set[str]:
         return self._defined_vars
-    
+
     def get_used_vars(self) -> set[str]:
         return self._used_vars
-    
